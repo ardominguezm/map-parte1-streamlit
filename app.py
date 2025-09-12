@@ -157,3 +157,64 @@ st.caption(
     f"([{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})) · "
     f"Generado: {_dt.datetime.now().strftime('%Y-%m-%d %H:%M')} · {APP_VERSION}"
 )
+
+--- a/app.py
++++ b/app.py
+@@
+ AUTHOR_NAME  = "Andy Domínguez"
+ AUTHOR_EMAIL = "ardominguezm@gmail.com"
+ LOGO_CANDIDATES = ["assets/logo.png", "logo.png", "assets/logo.jpg"]
+ 
+-def render_header():
+-    col_logo, col_title = st.columns([1, 5])
+-    with col_logo:
+-        logo_found = False
+-        for p in LOGO_CANDIDATES:
+-            if Path(p).exists():
+-                st.image(p, use_container_width=True)
+-                logo_found = True
+-                break
+-        if not logo_found:
+-            st.markdown("### 📊")
+-    with col_title:
+-        st.markdown("# Víctimas por Minas Antipersonal — Pronóstico 2024-Q1")
+-        st.markdown(
+-            f"**Realizado por:** {AUTHOR_NAME} · "
+-            f"[{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})"
+-        )
++def render_header():
++    # Header limpio (sin logo)
++    st.markdown("# Víctimas por Minas Antipersonal — Pronóstico 2024-Q1")
++    st.markdown(
++        f"**Realizado por:** {AUTHOR_NAME} · "
++        f"[{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})"
++    )
++
++import base64
++def _logo_base64():
++    for p in LOGO_CANDIDATES:
++        if Path(p).exists():
++            with open(p, "rb") as f:
++                return "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
++    return None
++
++def render_sidebar_brand():
++    # Bloque compacto fijado al fondo de la barra lateral
++    src = _logo_base64()
++    img_tag = f'<img src="{src}" style="width:120px; display:block; margin:0 auto 6px;" />' if src else ""
++    html = f"""
++    <div style="position: fixed; bottom: 14px; left: 12px; right: 12px;
++                padding: 10px 12px; border-top: 1px solid #e5e7eb;
++                font-size: 13px; color: #374151; background: rgba(255,255,255,0.85);">
++        {img_tag}
++        <div style="text-align:center;">
++          <strong>{AUTHOR_NAME}</strong><br/>
++          <a href="mailto:{AUTHOR_EMAIL}">{AUTHOR_EMAIL}</a>
++        </div>
++    </div>
++    """
++    st.sidebar.markdown(html, unsafe_allow_html=True)
+@@
+-render_header()
++render_header()
++render_sidebar_brand()
