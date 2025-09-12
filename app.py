@@ -1,18 +1,55 @@
 import builtins as _b
-# Evita errores si algún builtin fue "pisado"
+# Evita errores si algún builtin fue "pisado" (p. ej., str=list=...)
 str = _b.str; list = _b.list; dict = _b.dict; set = _b.set
 
+import os
+from pathlib import Path
 import streamlit as st
 import pandas as pd
 import datetime as _dt
 
-APP_VERSION = "v1.1-2025-09-12"
+APP_VERSION = "v1.2-2025-09-12"
 
-st.set_page_config(page_title="MAP — 2024 Q1", layout="wide")
+# ===========================
+#  Configuración de la página
+# ===========================
+st.set_page_config(
+    page_title="MAP — 2024 Q1",
+    page_icon="📊",
+    layout="wide",
+)
 
+# ===========================
+#  Personalización / Branding
+# ===========================
+AUTHOR_NAME  = "Andy Domínguez"
+AUTHOR_EMAIL = "ardominguezm@gmail.com"
+LOGO_CANDIDATES = ["assets/logo_3is.png"]
+
+def render_header():
+    col_logo, col_title = st.columns([1, 5])
+    with col_logo:
+        logo_found = False
+        for p in LOGO_CANDIDATES:
+            if Path(p).exists():
+                st.image(p, use_column_width=True)
+                logo_found = True
+                break
+        if not logo_found:
+            st.markdown("### 📊")
+    with col_title:
+        st.markdown("# Víctimas por Minas Antipersonal — Pronóstico 2024-Q1")
+        st.markdown(
+            f"**Realizado por:** {AUTHOR_NAME} · "
+            f"[{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})"
+        )
+
+# ===========================
+#  Carga de datos (cacheada)
+# ===========================
 @st.cache_data
 def load_data():
-    # Serie histórica
+    # Serie histórica nacional
     serie = pd.read_csv("outputs_parte1/serie_nacional_mensual.csv")
     s_date_col = next((c for c in serie.columns if str(c).lower() in ("date","fecha","index","unnamed: 0")), None)
     if s_date_col is None:
@@ -26,7 +63,7 @@ def load_data():
         serie = serie.rename(columns={s_val_col: "hist"})
     serie = serie[["hist"]]
 
-    # Forecast Q1
+    # Forecast nacional Q1
     fc = pd.read_csv("outputs_parte1/forecast_nacional_Q1_2024.csv")
     f_date_col = next((c for c in fc.columns if str(c).lower() in ("date","fecha","index","unnamed: 0")), None)
     if f_date_col is None:
@@ -42,23 +79,30 @@ def load_data():
         if col not in fc.columns:
             fc[col] = pd.NA
 
-    # Departamentos Q1
+    # Predicción por departamento (Q1)
     dept = pd.read_csv("outputs_parte1/forecast_depto_Q1_2024.csv")
     if "departamento" in dept.columns:
-        dept = dept.rename(columns={"departamento": "Departamento"})
+        dept = dept.rename(columns={"departamento":"Departamento"})
     if "pred_Q1_2024" in dept.columns:
-        dept = dept.rename(columns={"pred_Q1_2024": "Pred_Q1"})
-    if not {"Departamento", "Pred_Q1"}.issubset(dept.columns):
+        dept = dept.rename(columns={"pred_Q1_2024":"Pred_Q1"})
+    if not {"Departamento","Pred_Q1"}.issubset(dept.columns):
         raise ValueError("El CSV de departamentos debe tener columnas 'Departamento' y 'Pred_Q1'.")
 
     return serie, fc, dept
 
-# === Carga
-serie, fc, dept_q1 = load_data()
+# ===========================
+#  UI
+# ===========================
+try:
+    serie, fc, dept_q1 = load_data()
+except Exception as e:
+    st.error(f"Error cargando datos: {e}")
+    st.stop()
 
-# === UI
-st.title("Víctimas por Minas Antipersonal — Pronóstico 2024-Q1")
+# Encabezado con logo + autor
+render_header()
 
+# Pestañas
 tab_viz, tab_dl = st.tabs(["📊 Visualizaciones", "📥 Descargas"])
 
 with tab_viz:
@@ -106,7 +150,7 @@ with tab_dl:
 
 st.divider()
 st.caption(
-    "Realizado por: **Andy Domínguez** (ardominguezm@gmail.com) · "
+    "Realizado por: **Andy Domínguez** "
+    f"([{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})) · "
     f"Generado: {_dt.datetime.now().strftime('%Y-%m-%d %H:%M')} · {APP_VERSION}"
 )
-
