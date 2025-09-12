@@ -32,7 +32,7 @@ def render_header():
         logo_found = False
         for p in LOGO_CANDIDATES:
             if Path(p).exists():
-                st.image(p, width=150)
+                st.image(p, use_container_width=True)
                 logo_found = True
                 break
         if not logo_found:
