@@ -32,7 +32,10 @@ def render_header():
         logo_found = False
         for p in LOGO_CANDIDATES:
             if Path(p).exists():
-                try:     st.image(p, use_container_width=True) except TypeError:     # Compatibilidad con versiones antiguas     st.image(p, use_column_width=True)
+                try:    
+                    st.image(p, use_container_width=True) 
+                except TypeError:     # Compatibilidad con versiones antiguas    
+                    st.image(p, use_column_width=True)
                 logo_found = True
                 break
         if not logo_found:
