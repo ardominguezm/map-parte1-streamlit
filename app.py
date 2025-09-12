@@ -163,7 +163,7 @@ st.caption(
 @@
  AUTHOR_NAME  = "Andy Domínguez"
  AUTHOR_EMAIL = "ardominguezm@gmail.com"
- LOGO_CANDIDATES = ["assets/logo.png", "logo.png", "assets/logo.jpg"]
+ LOGO_CANDIDATES = ["assets/logo_3is"]
  
 -def render_header():
 -    col_logo, col_title = st.columns([1, 5])
