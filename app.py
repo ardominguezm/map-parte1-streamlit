@@ -85,3 +85,43 @@ with col2:
 
 st.divider()
 st.write("**Metodología (resumen):** PM-12 vs SARIMA vs GBR con split temporal (train ≤2022, valid=2023). Limpieza de etiquetas y normalización de fechas/códigos. Reparto proporcional por participación reciente para estimar Q1 por departamento.")
+
+import io
+
+tab_viz, tab_dl = st.tabs(["📊 Visualizaciones", "📥 Descargas"])
+
+with tab_viz:
+    col1, col2 = st.columns([1,1])
+    with col1:
+        st.subheader("Histórico y pronóstico (nacional)")
+        to_plot = pd.concat([serie["hist"], fc["forecast"].rename("forecast")], axis=1).sort_index()
+        to_plot.index.name = "date"
+        st.line_chart(to_plot)
+        st.caption("Nota: IC≈95% calculado a partir del error de validación del modelo seleccionado.")
+    with col2:
+        st.subheader("Top-10 departamentos (Q1-2024, predicho)")
+        top10 = dept_q1.sort_values("Pred_Q1", ascending=False).head(10).copy()
+        top10 = top10.set_index("Departamento")["Pred_Q1"]
+        st.bar_chart(top10)
+
+with tab_dl:
+    st.write("Descarga los datos usados por el dashboard:")
+    c1, c2, c3 = st.columns(3)
+    c1.download_button(
+        "Serie nacional (CSV)",
+        serie.reset_index().rename(columns={"index":"date"}).to_csv(index=False).encode("utf-8"),
+        file_name="serie_nacional_mensual.csv",
+        mime="text/csv",
+    )
+    c2.download_button(
+        "Forecast Q1-2024 (CSV)",
+        fc.reset_index().rename(columns={"index":"date"}).to_csv(index=False).encode("utf-8"),
+        file_name="forecast_nacional_Q1_2024.csv",
+        mime="text/csv",
+    )
+    c3.download_button(
+        "Departamentos Q1-2024 (CSV)",
+        dept_q1.to_csv(index=False).encode("utf-8"),
+        file_name="forecast_depto_Q1_2024.csv",
+        mime="text/csv",
+    )
