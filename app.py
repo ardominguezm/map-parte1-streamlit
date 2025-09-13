@@ -261,7 +261,7 @@ with tab_viz:
         if pd.notna(fc_start) and pd.notna(fc_end):
             fig.add_vrect(
                 x0=fc_start, x1=fc_end,
-                fillcolor="rgba(79,195,247,0.15)", opacity=1.0, line_width=0, layer="below"
+                fillcolor="rgba(79,195,247,0.15)", opacity=0.5, line_width=0, layer="below"
             )
 
         # Enfocar últimos 36 meses (ajusta si quieres)
