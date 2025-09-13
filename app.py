@@ -74,7 +74,7 @@ def load_data():
 
 # -------- Header (sin logo) --------
 def render_header():
-    st.markdown("# Víctimas por Minas Antipersonal — Pronóstico 2024-Q1")
+    st.markdown("# Parte 1- test: Víctimas por Minas Antipersona — Pronóstico 2024-Q1")
     st.markdown(
         f"**Realizado por:** {AUTHOR_NAME} · "
         f"[{AUTHOR_EMAIL}](mailto:{AUTHOR_EMAIL})"
