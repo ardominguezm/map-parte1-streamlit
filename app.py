@@ -12,7 +12,6 @@
 #
 # Tip: usa .streamlit/config.toml con base="dark" para fondo negro y letras blancas.
 # -----------------------------------------------------------------------------
-
 import builtins as _b
 str=_b.str; list=_b.list; dict=_b.dict; set=_b.set
 
@@ -29,7 +28,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="MAP — 2024 Q1", layout="wide")
 px.defaults.template = "plotly_dark"  # modo oscuro para plotly
 
-APP_TITLE = "Dashboard Modelo Predictivo Víctimas por Minas Antipersona — Pronóstico 2024-Q1"
+APP_TITLE = "Dashboard Modelo Predictivo Víctimas por Minas Antipersona — Pronóstico 2024-Q"
 AUTHOR_NAME = "Andy Domínguez"
 AUTHOR_EMAIL = "ardominguezm@gmail.com"
 
@@ -257,16 +256,13 @@ with tab_viz:
             ))
 
         # Sombrear tramo de pronóstico
-          fc_start = fcf.index.min()
-          fc_end = fcf.index.max()
-          if pd.notna(fc_start) and pd.notna(fc_end):
-             fig.add_vrect(
-                 x0=fc_start, x1=fc_end,
-                 fillcolor="rgba(79,195,247,0.15)",  # celeste suave (diferente del naranja de la banda)
-                 opacity=1.0,
-                 line_width=0,
-                 layer="below"
-             )
+        fc_start = fcf.index.min()
+        fc_end = fcf.index.max()
+        if pd.notna(fc_start) and pd.notna(fc_end):
+            fig.add_vrect(
+                x0=fc_start, x1=fc_end,
+                fillcolor="rgba(255,183,77,0.10)", line_width=0, layer="below"
+            )
 
         # Enfocar últimos 36 meses (ajusta si quieres)
         last = df["date"].max()
@@ -382,3 +378,4 @@ with tab_dl:
         )
     else:
         c4.write("—")
+
