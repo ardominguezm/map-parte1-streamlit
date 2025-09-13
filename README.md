@@ -1,4 +1,4 @@
-# MAP — Parte 1 (Despliegue en Streamlit Cloud)  
+# MAP — Parte 1 (Despliegue del Modelo en Streamlit Cloud)  
 **Modelo Víctimas por Minas Antipersona — Pronóstico 2024-Q1**
 
 Dashboard en **Streamlit** para visualizar el histórico nacional de víctimas por minas antipersonal, el **pronóstico Q1-2024** y un **mapa coroplético por departamento** (33/33 departamentos garantizados).
