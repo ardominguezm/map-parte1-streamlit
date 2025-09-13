@@ -22,17 +22,16 @@ Dashboard en **Streamlit** para visualizar el histórico nacional de víctimas p
 ├── app.py
 ├── requirements.txt
 ├── .streamlit/
-│   └── config.toml
+│ └── config.toml
 ├── assets/
-│   └── logo_3is.png               # (opcional) mostrado en la barra lateral
+│ └── logo_3is.png # mostrado en la barra lateral
 ├── data/
-│   └── colombia_departamentos.geojson
+│ └── colombia_departamentos.geojson
 └── outputs_parte1/
-    ├── serie_nacional_mensual.csv
-    ├── forecast_nacional_Q1_2024.csv
-    ├── forecast_depto_Q1_2024.csv
-    └── serie_departamental_mensual.csv   # (opcional)
-
+├── serie_nacional_mensual.csv
+├── forecast_nacional_Q1_2024.csv
+├── forecast_depto_Q1_2024.csv
+└── serie_departamental_mensual.csv # 
 
 ---
 
@@ -45,9 +44,3 @@ streamlit
 pandas
 numpy
 plotly
-
-
-start = last - pd.DateOffset(months=36)
-
-pip install -r requirements.txt
-streamlit run app.py
