@@ -18,13 +18,13 @@ Dashboard en **Streamlit** para visualizar el histórico nacional de víctimas p
 
 ## 🗂️ Estructura del repositorio
 
-.
+
 ├── app.py
 ├── requirements.txt
 ├── .streamlit/
 │   └── config.toml
 ├── assets/
-│   └── logo.png               # (opcional) mostrado en la barra lateral
+│   └── logo_3is.png               # (opcional) mostrado en la barra lateral
 ├── data/
 │   └── colombia_departamentos.geojson
 └── outputs_parte1/
