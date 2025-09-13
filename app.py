@@ -28,7 +28,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="MAP — 2024 Q1", layout="wide")
 px.defaults.template = "plotly_dark"  # modo oscuro para plotly
 
-APP_TITLE = "Dashboard Modelo Predictivo Víctimas por Minas Antipersona — Pronóstico 2024-Q"
+APP_TITLE = "Dashboard Modelo Predictivo Víctimas por Minas Antipersona — Pronóstico 2024-Q1"
 AUTHOR_NAME = "Andy Domínguez"
 AUTHOR_EMAIL = "ardominguezm@gmail.com"
 
