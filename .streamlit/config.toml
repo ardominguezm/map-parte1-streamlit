@@ -1,0 +1,7 @@
+[theme]
+base="dark"
+primaryColor="#4F9CFF"
+backgroundColor="#0B0B0C"           # casi negro
+secondaryBackgroundColor="#111216"   # paneles
+textColor="#FFFFFF"
+font="sans serif"
