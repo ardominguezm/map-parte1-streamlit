@@ -45,22 +45,49 @@ def _strip_accents(s: str) -> str:
     s = unicodedata.normalize("NFD", str(s))
     return "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
 
-def norm_name(s: str) -> str:
-    s = _strip_accents(str(s).upper())
-    # normaliza separadores y variantes comunes
-    s = s.replace(".", " ").replace(",", " ").replace("  ", " ").strip()
-    # unifica algunos casos problemáticos
-    repl = {
-        "BOGOTA D C": "BOGOTA DC",
-        "BOGOTA": "BOGOTA DC",
-        "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA": "SAN ANDRES Y PROVIDENCIA",
-        "SAN ANDRES": "SAN ANDRES Y PROVIDENCIA",
-        "VALLE": "VALLE DEL CAUCA",
-        "VALLE DEL CAUCA": "VALLE DEL CAUCA",
-        "N DE SANTANDER": "NORTE DE SANTANDER",
-        "NORTE SANTANDER": "NORTE DE SANTANDER",
-    }
-    return repl.get(s, s)
+import json, re, unicodedata, plotly.express as px
+
+GEOJSON_PATH = "data/colombia_departamentos.geojson"
+
+def _norm(s: str) -> str:
+    s = unicodedata.normalize("NFD", str(s)).encode("ascii","ignore").decode().upper()
+    s = re.sub(r"[.,]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+@st.cache_data
+def load_geojson_with_norm():
+    with open(GEOJSON_PATH, "r", encoding="utf-8") as f:
+        gj = json.load(f)
+    # Si por alguna razón el archivo no trae name_norm, lo creamos al vuelo
+    for ft in gj["features"]:
+        props = ft.setdefault("properties", {})
+        if "name_norm" not in props:
+            props["name_norm"] = _norm(props.get("NOMBRE_DPT", ""))
+    names_geo = {ft["properties"]["name_norm"] for ft in gj["features"]}
+    return gj, names_geo
+
+def draw_map(df, value_col, title):
+    geojson, names_geo = load_geojson_with_norm()
+    d = df.copy()
+    d["name_norm"] = d["Departamento"].map(_norm)
+
+    faltan = sorted(set(d["name_norm"]) - names_geo)
+    if faltan:
+        st.info("Departamentos no encontrados en el GeoJSON: " + ", ".join(faltan))
+
+    fig = px.choropleth(
+        d,
+        geojson=geojson,
+        locations="name_norm",
+        featureidkey="properties.name_norm",
+        color=value_col,
+        color_continuous_scale="Blues",
+        labels={value_col: "Víctimas"},
+    )
+    fig.update_geos(fitbounds="locations", visible=False)
+    st.subheader(title)
+    st.plotly_chart(fig, use_container_width=True)
+
 
 def try_read_csv(path: str):
     p = Path(path)
