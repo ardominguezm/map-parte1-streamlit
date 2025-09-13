@@ -1,17 +1,16 @@
-# app.py — Dark Edition
+# app.py — Dark Edition (MAP Parte 1)
 # -----------------------------------------------------------------------------
-# MAP — Parte 1 (Streamlit)
 # Autor: Andy Domínguez · ardominguezm@gmail.com
 # Requiere: streamlit, pandas, numpy, plotly
 #
-# Datos esperados (carpeta outputs_parte1/):
-#   - serie_nacional_mensual.csv
-#   - forecast_nacional_Q1_2024.csv
-#   - forecast_depto_Q1_2024.csv          # puede venir subset (Top-10). El mapa completa a 33 con 0
-#   - (opcional) serie_departamental_mensual.csv  # date, Departamento, victims (mensual)
+# Estructura esperada:
+#   data/colombia_departamentos.geojson
+#   outputs_parte1/serie_nacional_mensual.csv
+#   outputs_parte1/forecast_nacional_Q1_2024.csv
+#   outputs_parte1/forecast_depto_Q1_2024.csv     (puede venir solo Top-10; el mapa completa a 33)
+#   outputs_parte1/serie_departamental_mensual.csv   (opcional: date, Departamento, victims)
 #
-# GeoJSON esperado:
-#   - data/colombia_departamentos.geojson  (propiedades NOMBRE_DPT, DPTO_CODE, name_norm)
+# Tip: usa .streamlit/config.toml con base="dark" para fondo negro y letras blancas.
 # -----------------------------------------------------------------------------
 
 import builtins as _b
@@ -24,10 +23,11 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 
-# Config general
+# ---------------------------- Config general ----------------------------------
 st.set_page_config(page_title="MAP — 2024 Q1", layout="wide")
-px.defaults.template = "plotly_dark"  # plotly en modo oscuro
+px.defaults.template = "plotly_dark"  # modo oscuro para plotly
 
 APP_TITLE = "Dashboard Modelo Predictivo Víctimas por Minas Antipersona — Pronóstico 2024-Q1"
 AUTHOR_NAME = "Andy Domínguez"
@@ -37,7 +37,7 @@ OUTPUTS_DIR = Path("outputs_parte1")
 GEOJSON_PATH = "data/colombia_departamentos.geojson"
 LOGO_PATH = "assets/logo_3is.png"
 
-# ---- CSS para pulir modo oscuro (banner, enlaces, tabs)
+# ------------------------------ Estilos CSS -----------------------------------
 st.markdown("""
 <style>
 /* Banner oscuro */
@@ -52,8 +52,9 @@ a { color: #9bc3ff !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------- Utilidades -----------------------------------------
+# ------------------------------- Utilidades -----------------------------------
 def norm_name(s: str) -> str:
+    """Normaliza nombres para empatar (sin acentos, mayúsculas, espacios compactos)."""
     s = unicodedata.normalize("NFD", str(s)).encode("ascii","ignore").decode().upper()
     s = re.sub(r"[.,]", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
@@ -74,7 +75,7 @@ def read_csv_safe(path: Path) -> pd.DataFrame | None:
         pass
     return None
 
-# ------------------------- Carga de insumos (cache) ---------------------------
+# -------------------------- Carga de insumos (cache) --------------------------
 @st.cache_data
 def load_inputs(_outputs_dir: str, _geojson_path: str):
     outdir = Path(_outputs_dir)
@@ -105,7 +106,7 @@ def load_inputs(_outputs_dir: str, _geojson_path: str):
         if col not in fc.columns:
             fc[col] = np.nan
 
-    # Forecast departamental Q1 (puede ser subset)
+    # Forecast departamental Q1 (puede venir subset)
     fc_dep = read_csv_safe(outdir / "forecast_depto_Q1_2024.csv")
     if fc_dep is None:
         raise FileNotFoundError("Falta outputs_parte1/forecast_depto_Q1_2024.csv")
@@ -158,7 +159,7 @@ def load_inputs(_outputs_dir: str, _geojson_path: str):
     last_hist_date = (serie.index.max() if len(serie) else pd.NaT)
     return serie, fc, fc_dep, serie_dep, gj, feat_norm_key, base_depts, last_hist_date
 
-# ----------------------------- Sidebar ----------------------------------------
+# --------------------------------- Sidebar ------------------------------------
 with st.sidebar:
     st.header("MAP — Parte 1")
     st.caption("Dashboard (modo oscuro)")
@@ -189,7 +190,7 @@ with st.sidebar:
         st.image(LOGO_PATH, caption="3iS · information · innovation · impact",
                  use_container_width=True)
 
-# ----------------------------- Banner -----------------------------------------
+# --------------------------------- Banner -------------------------------------
 st.markdown(f"""
 <div class="hero">
   <h1>{APP_TITLE}</h1>
@@ -197,7 +198,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ----------------------------- Carga ------------------------------------------
+# --------------------------------- Carga --------------------------------------
 if not Path(GEOJSON_PATH).exists():
     st.error(f"No se encontró el GeoJSON en `{GEOJSON_PATH}`. Súbelo para ver el mapa.")
     st.stop()
@@ -208,21 +209,75 @@ except Exception as e:
     st.error(f"Error al cargar insumos: {e}")
     st.stop()
 
-# ----------------------------- Pestañas ---------------------------------------
+# --------------------------------- Pestañas -----------------------------------
 tab_viz, tab_map, tab_dl = st.tabs(["📊 Visualizaciones", "🗺️ Mapa por departamento", "📥 Descargas"])
 
+# ====== VISUALIZACIONES ========================================================
 with tab_viz:
     col1, col2 = st.columns([1,1])
 
-    # Serie + forecast nacional
+    # --------- Gráfico nacional: histórico vs pronóstico (mejorado) ----------
     with col1:
         st.subheader("Histórico y pronóstico (nacional)")
-        to_plot = pd.concat([serie["hist"].rename("hist"), fc["forecast"].rename("forecast")], axis=1).sort_index()
-        st.line_chart(to_plot, use_container_width=True)
-        if {"lower_95","upper_95"}.issubset(fc.columns):
-            st.caption("IC≈95% basado en error de validación (aprox).")
 
-    # Top-10 departamental (predicción)
+        hist = serie["hist"].rename("valor").to_frame()
+        hist["tipo"] = "Histórico"
+        fcf = fc["forecast"].rename("valor").to_frame()
+        fcf["tipo"] = "Pronóstico"
+
+        df = pd.concat([hist, fcf]).reset_index().rename(columns={"index": "date"})
+
+        fig = go.Figure()
+
+        # Histórico (celeste)
+        d_hist = df[df["tipo"] == "Histórico"]
+        fig.add_trace(go.Scatter(
+            x=d_hist["date"], y=d_hist["valor"],
+            mode="lines+markers", name="hist",
+            line=dict(color="#4FC3F7", width=2)
+        ))
+
+        # Pronóstico (naranja punteado)
+        d_fc = df[df["tipo"] == "Pronóstico"]
+        fig.add_trace(go.Scatter(
+            x=d_fc["date"], y=d_fc["valor"],
+            mode="lines+markers", name="forecast",
+            line=dict(color="#FFB74D", width=3, dash="dash")
+        ))
+
+        # Banda de IC≈95% si existe
+        if {"lower_95", "upper_95"}.issubset(fc.columns):
+            band_x = list(fc.index) + list(fc.index[::-1])
+            band_y = list(fc["upper_95"]) + list(fc["lower_95"][::-1])
+            fig.add_trace(go.Scatter(
+                x=band_x, y=band_y, name="IC≈95%",
+                fill="toself", fillcolor="rgba(255,183,77,0.22)",
+                line=dict(color="rgba(0,0,0,0)"),
+                hoverinfo="skip"
+            ))
+
+        # Sombrear tramo de pronóstico
+        fc_start = fcf.index.min()
+        fc_end = fcf.index.max()
+        if pd.notna(fc_start) and pd.notna(fc_end):
+            fig.add_vrect(
+                x0=fc_start, x1=fc_end,
+                fillcolor="rgba(255,183,77,0.10)", line_width=0, layer="below"
+            )
+
+        # Enfocar últimos 36 meses (ajusta si quieres)
+        last = df["date"].max()
+        start = last - pd.DateOffset(months=36)
+        fig.update_xaxes(range=[start, last + pd.DateOffset(months=1)])
+
+        fig.update_layout(
+            xaxis_title="", yaxis_title="Víctimas / mes",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+            margin=dict(l=0, r=0, t=10, b=0)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # --------- Top-10 departamental (barras) ----------------------------------
     with col2:
         st.subheader("Top-10 departamentos (Q1-2024, predicho)")
         top10 = fc_dep.rename(columns={"Pred_Q1":"valor"}).sort_values("valor", ascending=False).head(10)
@@ -231,11 +286,11 @@ with tab_viz:
     st.divider()
     st.write("**Metodología (resumen):** PM-12 vs SARIMA vs GBR con split temporal (train ≤2022, valid=2023). Limpieza de etiquetas/códigos y reparto proporcional por participación reciente para estimar Q1 por departamento.")
 
-# ----------------------------- Mapa -------------------------------------------
+# ====== MAPA ==================================================================
 with tab_map:
     st.subheader("Mapa choropleth por departamento")
 
-    has_hist = (serie_dep is not None)
+    has_hist = (read_csv_safe(OUTPUTS_DIR / "serie_departamental_mensual.csv") is not None)
     if has_hist:
         opt = st.radio(
             "Selecciona capa:",
@@ -247,6 +302,8 @@ with tab_map:
         opt = "Pronóstico Q1-2024"
 
     if has_hist and opt.startswith("Histórico"):
+        # recomputar la serie_dep desde cache (ya cargada) para fechas
+        serie_dep = load_inputs(str(OUTPUTS_DIR), GEOJSON_PATH)[3]
         last_date = serie_dep["date"].max()
         start_date = (last_date - pd.DateOffset(months=11)).normalize()
         mask = (serie_dep["date"] >= start_date) & (serie_dep["date"] <= last_date)
@@ -266,7 +323,7 @@ with tab_map:
         df_map["Departamento"] = df_map["Departamento_label"]
         layer_name = "Pronóstico Q1-2024"
 
-    fig = px.choropleth(
+    fig_map = px.choropleth(
         df_map,
         geojson=geojson,
         locations="Departamento_norm",
@@ -277,18 +334,18 @@ with tab_map:
         hover_name="Departamento",
         hover_data={"Departamento_norm": False, "valor": ":.2f"},
     )
-    fig.update_geos(fitbounds="locations", visible=False)
-    fig.update_traces(marker_line_width=outline, marker_line_color="rgba(255,255,255,.55)")
-    fig.update_layout(
+    fig_map.update_geos(fitbounds="locations", visible=False)
+    fig_map.update_traces(marker_line_width=outline, marker_line_color="rgba(255,255,255,.55)")
+    fig_map.update_layout(
         coloraxis_reversescale=rev,
         coloraxis_showscale=show_scale,
         margin=dict(l=0, r=0, t=30, b=0),
         coloraxis_colorbar=dict(title="Víctimas"),
         title=layer_name,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_map, use_container_width=True)
 
-# ----------------------------- Descargas --------------------------------------
+# ====== DESCARGAS =============================================================
 with tab_dl:
     st.write("Descarga los datos usados por el dashboard:")
     c1, c2, c3, c4 = st.columns(4)
@@ -311,10 +368,12 @@ with tab_dl:
         file_name="forecast_depto_Q1_2024.csv",
         mime="text/csv",
     )
-    if serie_dep is not None:
+    serie_dep_file = OUTPUTS_DIR / "serie_departamental_mensual.csv"
+    if serie_dep_file.exists():
+        raw = pd.read_csv(serie_dep_file)
         c4.download_button(
             "Serie departamental mensual (CSV)",
-            serie_dep.to_csv(index=False).encode("utf-8"),
+            raw.to_csv(index=False).encode("utf-8"),
             file_name="serie_departamental_mensual.csv",
             mime="text/csv",
         )
